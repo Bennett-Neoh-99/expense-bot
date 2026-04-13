@@ -175,16 +175,28 @@ async def auto_send(context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_document(chat_id=CHAT_ID, document=f)
 
 # -------- MAIN -------- #
-app = ApplicationBuilder().token(TOKEN).build()
+print("Starting bot...")
 
-app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-app.add_handler(CommandHandler("summary", summary))
-app.add_handler(CommandHandler("month", send_report))
+    print("TOKEN:", TOKEN)
+    print("CHAT_ID:", CHAT_ID)
 
-scheduler = AsyncIOScheduler()
-scheduler.add_job(auto_send, 'cron', day=1, hour=9)
-scheduler.start()
+    app = ApplicationBuilder().token(TOKEN).build()
+    print("App built")
 
-print("🤖 Bot running...")
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    app.add_handler(CommandHandler("summary", summary))
+    app.add_handler(CommandHandler("month", send_report))
+    print("Handlers added")
 
-app.run_polling()
+    # ❗ TEMP: disable scheduler
+    # scheduler = AsyncIOScheduler()
+    # scheduler.add_job(auto_send, 'cron', day=1, hour=9)
+    # scheduler.start()
+
+    print("🤖 Bot running...")
+
+    app.run_polling()
+
+except Exception as e:
+    print("🔥 ERROR OCCURRED:")
+    print(e)
