@@ -184,32 +184,32 @@ async def auto_send(context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_document(chat_id=CHAT_ID, document=f)
 
 # -------- MAIN -------- #
-# Run Flask in background thread
+import threading
+import asyncio
+
 def run_web():
     port = int(os.environ.get("PORT", 10000))
     app_web.run(host="0.0.0.0", port=port)
 
 if __name__ == "__main__":
-    # ✅ Start Flask in background
+    # Run Flask in background
     web_thread = threading.Thread(target=run_web)
     web_thread.start()
 
-    # ✅ Run Telegram bot in MAIN thread (CRITICAL)
+    # Run bot in main thread
     print("Starting bot...")
 
-import asyncio
+    app = ApplicationBuilder().token(TOKEN).build()
 
-# Create event loop manually (Python 3.14 fix)
-loop = asyncio.new_event_loop()
-asyncio.set_event_loop(loop)
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    app.add_handler(CommandHandler("summary", summary))
+    app.add_handler(CommandHandler("month", send_report))
 
-app.run_polling()
+    print("🤖 Bot running...")
 
-if __name__ == "__main__":
-    # Run bot in separate thread
-    bot_thread = threading.Thread(target=run_bot)
-    bot_thread.start()
+    # ✅ FIX: create event loop
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
 
-    # Run Flask (this keeps Render alive)
-    port = int(os.environ.get("PORT", 10000))
-    app_web.run(host="0.0.0.0", port=port)
+    app.run_polling()
+
