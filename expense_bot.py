@@ -305,23 +305,6 @@ async def delete_entry(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🗑 Deleted: {removed['description']} - ${removed['amount']:.2f}"
     )
 
-    user_df = df[df['user_id'] == user_id]
-
-    matches = user_df[user_df['description'].str.lower().str.contains(keyword)]
-
-    if matches.empty:
-        await update.message.reply_text("❌ No matching entry found.")
-        return
-
-    index_to_drop = matches.index[0]
-    removed = df.loc[index_to_drop]
-
-    cursor.execute("DELETE FROM expenses WHERE id = ?", (removed["id"],))
-    conn.commit()
-
-    await update.message.reply_text(
-        f"🗑 Deleted: {removed['description']} - ${removed['amount']:.2f}"
-    )
     
 # -------- SEND REPORT COMMAND -------- #
 async def send_report(update: Update, context: ContextTypes.DEFAULT_TYPE):
