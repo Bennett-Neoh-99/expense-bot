@@ -44,7 +44,7 @@ if not os.path.exists(DATA_FILE):
 def detect_category(text):
     text = text.lower()
 
-    if any(word in text for word in ["coffee", "lunch", "dinner", "food"]):
+    if any(word in text for word in ["coffee","breakfast", "lunch", "dinner", "food"]):
         return "food"
     elif any(word in text for word in ["grab", "taxi", "bus", "train"]):
         return "transport"
