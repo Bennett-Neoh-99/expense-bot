@@ -11,6 +11,7 @@ def home():
 import re
 import os
 import pandas as pd
+import sqlite3
 from datetime import datetime
 
 # Telegram bot libraries
@@ -34,7 +35,23 @@ print("TOKEN:", TOKEN)
 print("CHAT_ID:", CHAT_ID)
 
 # File to store expenses
-DATA_FILE = "expenses.csv"
+DB_FILE = "expenses.db"
+
+conn = sqlite3.connect(DB_FILE, check_same_thread=False)
+cursor = conn.cursor()
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS expenses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    date TEXT,
+    user_id INTEGER,
+    description TEXT,
+    amount REAL,
+    category TEXT
+)
+""")
+
+conn.commit()
 
 # Create CSV file if it doesn't exist
 if not os.path.exists(DATA_FILE):
@@ -75,10 +92,17 @@ def parse_input(text):
     return description, amount, category
 
 def save_expense(entry):
-    df = pd.DataFrame([entry])
-
-    # Append to CSV file
-    df.to_csv(DATA_FILE, mode='a', header=False, index=False)
+    cursor.execute("""
+        INSERT INTO expenses (date, user_id, description, amount, category)
+        VALUES (?, ?, ?, ?, ?)
+    """, (
+        entry["date"],
+        entry["user_id"],
+        entry["description"],
+        entry["amount"],
+        entry["category"]
+    ))
+    conn.commit()
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
@@ -111,7 +135,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def summary(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    df = pd.read_csv(DATA_FILE)
+    query = "SELECT * FROM expenses WHERE user_id = ?"
+    df = pd.read_sql_query(query, conn, params=(update.message.chat_id,))
     df['date'] = pd.to_datetime(df['date'])
 
     today = datetime.now().date()
@@ -147,7 +172,8 @@ async def summary(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(msg)
 
 async def monthly(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    df = pd.read_csv(DATA_FILE)
+    query = "SELECT * FROM expenses WHERE user_id = ?"
+    df = pd.read_sql_query(query, conn, params=(update.message.chat_id,))
     df['date'] = pd.to_datetime(df['date'])
 
     user_id = update.message.chat_id
@@ -203,7 +229,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(message, parse_mode="Markdown")
 
 def generate_report(user_id):
-    df = pd.read_csv(DATA_FILE)
+    query = "SELECT * FROM expenses WHERE user_id = ?"
+    df = pd.read_sql_query(query, conn, params=(user_id,))
+    df['date'] = pd.to_datetime(df['date'])
 
     if df.empty:
         return None
@@ -242,7 +270,8 @@ def generate_report(user_id):
 
 # -------- UNDO LAST ENTRY -------- #
 async def undo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    df = pd.read_csv(DATA_FILE)
+    query = "SELECT * FROM expenses WHERE user_id = ?"
+    df = pd.read_sql_query(query, conn, params=(update.message.chat_id,))
 
     user_id = update.message.chat_id
 
@@ -271,7 +300,8 @@ async def delete_entry(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyword = " ".join(context.args).lower()
     user_id = update.message.chat_id
 
-    df = pd.read_csv(DATA_FILE)
+    cursor.execute("DELETE FROM expenses WHERE id = ?", (removed["id"],))
+    conn.commit()
 
     user_df = df[df['user_id'] == user_id]
 
@@ -284,8 +314,8 @@ async def delete_entry(update: Update, context: ContextTypes.DEFAULT_TYPE):
     index_to_drop = matches.index[0]
     removed = df.loc[index_to_drop]
 
-    df = df.drop(index_to_drop)
-    df.to_csv(DATA_FILE, index=False)
+    cursor.execute("DELETE FROM expenses WHERE id = ?", (removed["id"],))
+    conn.commit()
 
     await update.message.reply_text(
         f"🗑 Deleted: {removed['description']} - ${removed['amount']:.2f}"
