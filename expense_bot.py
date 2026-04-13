@@ -1,3 +1,12 @@
+from flask import Flask
+import threading
+
+app_web = Flask(__name__)
+
+@app_web.route("/")
+def home():
+    return "Bot is running!"
+
 # Import required libraries
 import re
 import os
