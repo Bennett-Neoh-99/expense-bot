@@ -225,6 +225,7 @@ if __name__ == "__main__":
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     app.add_handler(CommandHandler("summary", summary))
     app.add_handler(CommandHandler("month", send_report))
+    app.add_handler(CommandHandler("start", start))
 
     print("🤖 Bot running...")
 
