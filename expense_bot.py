@@ -160,7 +160,7 @@ async def send_report(update: Update, context: ContextTypes.DEFAULT_TYPE):
     with open(file, "rb") as f:
         await update.message.reply_document(f)
 
-  async def auto_send(context: ContextTypes.DEFAULT_TYPE):
+ async def auto_send(context: ContextTypes.DEFAULT_TYPE):
     file = generate_report()
 
     if not file:
