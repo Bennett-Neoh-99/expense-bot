@@ -163,7 +163,7 @@ async def summary(update: Update, context: ContextTypes.DEFAULT_TYPE):
         msg += f"{category.capitalize()} ${cat_total:.2f}\n"
 
         for _, row in group.iterrows():
-            msg += f"- {row['description']} - ${row['amount']:.2f}\n"
+            msg += f"• {row['description']}: ${row['amount']:.2f}\n"
 
         msg += "\n"
 
