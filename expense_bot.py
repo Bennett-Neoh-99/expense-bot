@@ -177,8 +177,8 @@ async def auto_send(context: ContextTypes.DEFAULT_TYPE):
 # -------- MAIN -------- #
 print("Starting bot...")
 
-    print("TOKEN:", TOKEN)
-    print("CHAT_ID:", CHAT_ID)
+print("TOKEN:", TOKEN)
+print("CHAT_ID:", CHAT_ID)
 
     app = ApplicationBuilder().token(TOKEN).build()
     print("App built")
