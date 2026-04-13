@@ -18,8 +18,8 @@ from telegram.ext import (
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 # Get values from Render environment variables
-TOKEN = os.getenv("8742698717:AAEQTOWs92bKOr1Hd5M31RxEO6cyeKf6e80")      # Your Telegram bot token
-CHAT_ID = os.getenv("42470915")  # Your personal chat ID
+TOKEN = os.getenv("TOKEN")
+CHAT_ID = os.getenv("CHAT_ID")
 
 print("TOKEN:", TOKEN)
 print("CHAT_ID:", CHAT_ID)
