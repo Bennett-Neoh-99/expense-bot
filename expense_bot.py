@@ -93,14 +93,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     description, amount, category = parsed
 
-    # Create entry
+# Create entry
     entry = {
         "date": datetime.now(),
-        "user_id": update.message.chat_id,   # 👈 ADD THIS LINE
+        "user_id": update.message.chat_id,
         "description": description,
         "amount": amount,
         "category": category
-}
+    }
 
     # Save to CSV
     save_expense(entry)
@@ -170,16 +170,35 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def generate_report(user_id):
     df = pd.read_csv(DATA_FILE)
 
-    df = df[df['user_id'] == user_id]  # 👈 FILTER HERE
+    if df.empty:
+        return None
+
+    # ✅ Convert date column
+    df['date'] = pd.to_datetime(df['date'])
+
+    # ✅ Filter user
+    df = df[df['user_id'] == user_id]
 
     if df.empty:
         return None
-    # Group by category
+
+    # ✅ Get current month
+    now = datetime.now()
+
+    monthly = df[
+        (df['date'].dt.month == now.month) &
+        (df['date'].dt.year == now.year)
+    ]
+
+    if monthly.empty:
+        return None
+
+    # ✅ Group by category
     summary = monthly.groupby("category")["amount"].sum()
 
     file_name = f"expense_report_{now.month}_{now.year}.xlsx"
 
-    # Create Excel file
+    # ✅ Create Excel
     with pd.ExcelWriter(file_name) as writer:
         monthly.to_excel(writer, sheet_name="All Expenses", index=False)
         summary.to_excel(writer, sheet_name="Summary")
