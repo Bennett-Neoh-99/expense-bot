@@ -21,6 +21,9 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 TOKEN = os.getenv("8742698717:AAEQTOWs92bKOr1Hd5M31RxEO6cyeKf6e80")      # Your Telegram bot token
 CHAT_ID = os.getenv("42470915")  # Your personal chat ID
 
+print("TOKEN:", TOKEN)
+print("CHAT_ID:", CHAT_ID)
+
 # File to store expenses
 DATA_FILE = "expenses.csv"
 
