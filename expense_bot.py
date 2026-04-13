@@ -187,18 +187,19 @@ async def auto_send(context: ContextTypes.DEFAULT_TYPE):
 import threading
 import asyncio
 
+# Run Flask in background
 def run_web():
     port = int(os.environ.get("PORT", 10000))
     app_web.run(host="0.0.0.0", port=port)
 
 if __name__ == "__main__":
-    # Run Flask in background
+    # Start Flask in background thread
     web_thread = threading.Thread(target=run_web)
     web_thread.start()
 
-    # Run bot in main thread
     print("Starting bot...")
 
+    # ✅ Create Telegram app
     app = ApplicationBuilder().token(TOKEN).build()
 
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
@@ -207,9 +208,9 @@ if __name__ == "__main__":
 
     print("🤖 Bot running...")
 
-    # ✅ FIX: create event loop
+    # ✅ FIX: Create event loop (Python 3.14 requirement)
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
+    # ✅ Start bot
     app.run_polling()
-
