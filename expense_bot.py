@@ -124,35 +124,42 @@ async def summary(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     total = today_df['amount'].sum()
 
+    msg = f"📊 Today Total: ${total:.2f}\n\n"
+
     # Group by category
-    breakdown = today_df.groupby("category")["amount"].sum()
+    grouped = today_df.groupby("category")
 
-    msg = f"📊 Today Total: ${total:.2f}\n"
+    for category, group in grouped:
+        cat_total = group['amount'].sum()
+        msg += f"{category.capitalize()} ${cat_total:.2f}\n"
 
-    for cat, amt in breakdown.items():
-        msg += f"{cat}: ${amt:.2f}\n"
+        for _, row in group.iterrows():
+            msg += f"- {row['description']} - ${row['amount']:.2f}\n"
+
+        msg += "\n"
 
     await update.message.reply_text(msg)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = (
-        "👋 Welcome to Expense Tracker Bot!\n\n"
-        "💸 How to log expenses:\n"
+        "👋 *Welcome to Expense Tracker Bot!*\n\n"
+        "💸 *Log your expenses easily:*\n"
         "Just type:\n"
         "• coffee 5\n"
         "• lunch $12\n"
         "• grab 18\n\n"
-        "📊 Commands:\n"
-        "/summary - View today's spending\n"
-        "/month - Get monthly Excel report\n\n"
-        "🗑 Manage entries:\n"
-        "/undo - Remove last entry\n"
-        "/clear_today - Clear today's entries\n\n"
-        "⚡ Tip: Just type description + amount\n\n"
+        "📊 *View your spending:*\n"
+        "/summary — Today’s breakdown\n"
+        "/month — Monthly Excel report\n\n"
+        "🛠 *Manage entries:*\n"
+        "/undo — Remove last entry\n"
+        "/delete <name> — Remove specific entry\n"
+        "Example: /delete coffee\n\n"
+        "⚡ Tip: Keep it simple — description + amount\n\n"
         "Start tracking now 🚀"
     )
 
-    await update.message.reply_text(message)
+    await update.message.reply_text(message, parse_mode="Markdown")
 
 def generate_report():
     df = pd.read_csv(DATA_FILE)
@@ -181,7 +188,50 @@ def generate_report():
 
     return file_name
 
+# -------- UNDO LAST ENTRY -------- #
+async def undo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    df = pd.read_csv(DATA_FILE)
 
+    if df.empty:
+        await update.message.reply_text("No entries to remove.")
+        return
+
+    last = df.iloc[-1]
+
+    df = df.iloc[:-1]
+    df.to_csv(DATA_FILE, index=False)
+
+    await update.message.reply_text(
+        f"🗑 Removed: {last['description']} - ${last['amount']:.2f}"
+    )
+
+
+# -------- DELETE SPECIFIC ENTRY -------- #
+async def delete_entry(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not context.args:
+        await update.message.reply_text("❌ Usage: /delete <description>")
+        return
+
+    keyword = " ".join(context.args).lower()
+
+    df = pd.read_csv(DATA_FILE)
+
+    matches = df[df['description'].str.lower().str.contains(keyword)]
+
+    if matches.empty:
+        await update.message.reply_text("❌ No matching entry found.")
+        return
+
+    index_to_drop = matches.index[0]
+    removed = df.loc[index_to_drop]
+
+    df = df.drop(index_to_drop)
+    df.to_csv(DATA_FILE, index=False)
+
+    await update.message.reply_text(
+        f"🗑 Deleted: {removed['description']} - ${removed['amount']:.2f}"
+    )
+    
 # -------- SEND REPORT COMMAND -------- #
 async def send_report(update: Update, context: ContextTypes.DEFAULT_TYPE):
     file = generate_report()
@@ -226,6 +276,8 @@ if __name__ == "__main__":
 
     app.add_handler(CommandHandler("summary", summary))
     app.add_handler(CommandHandler("month", send_report))
+    app.add_handler(CommandHandler("undo", undo))
+    app.add_handler(CommandHandler("delete", delete_entry))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     print("🤖 Bot running...")
