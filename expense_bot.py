@@ -134,6 +134,26 @@ async def summary(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(msg)
 
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    message = (
+        "👋 Welcome to Expense Tracker Bot!\n\n"
+        "💸 How to log expenses:\n"
+        "Just type:\n"
+        "• coffee 5\n"
+        "• lunch $12\n"
+        "• grab 18\n\n"
+        "📊 Commands:\n"
+        "/summary - View today's spending\n"
+        "/month - Get monthly Excel report\n\n"
+        "🗑 Manage entries:\n"
+        "/undo - Remove last entry\n"
+        "/clear_today - Clear today's entries\n\n"
+        "⚡ Tip: Just type description + amount\n\n"
+        "Start tracking now 🚀"
+    )
+
+    await update.message.reply_text(message)
+
 def generate_report():
     df = pd.read_csv(DATA_FILE)
     df['date'] = pd.to_datetime(df['date'])
