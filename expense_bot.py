@@ -186,17 +186,9 @@ print("App built")
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 app.add_handler(CommandHandler("summary", summary))
 app.add_handler(CommandHandler("month", send_report))
-print("Handlers added")
 
-# ❗ TEMP: disable scheduler
-# scheduler = AsyncIOScheduler()
-# scheduler.add_job(auto_send, 'cron', day=1, hour=9)
-# scheduler.start()
+print("Handlers added")
 
 print("🤖 Bot running...")
 
 app.run_polling()
-
-except Exception as e:
-    print("🔥 ERROR OCCURRED:")
-    print(e)
