@@ -184,20 +184,24 @@ async def auto_send(context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_document(chat_id=CHAT_ID, document=f)
 
 # -------- MAIN -------- #
-print("Starting bot...")
+def run_bot():
+    print("Starting bot...")
 
-print("TOKEN:", TOKEN)
-print("CHAT_ID:", CHAT_ID)
+    app = ApplicationBuilder().token(TOKEN).build()
 
-app = ApplicationBuilder().token(TOKEN).build()
-print("App built")
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    app.add_handler(CommandHandler("summary", summary))
+    app.add_handler(CommandHandler("month", send_report))
 
-app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-app.add_handler(CommandHandler("summary", summary))
-app.add_handler(CommandHandler("month", send_report))
+    print("🤖 Bot running...")
+    app.run_polling()
 
-print("Handlers added")
 
-print("🤖 Bot running...")
+if __name__ == "__main__":
+    # Run bot in separate thread
+    bot_thread = threading.Thread(target=run_bot)
+    bot_thread.start()
 
-app.run_polling()
+    # Run Flask (this keeps Render alive)
+    port = int(os.environ.get("PORT", 10000))
+    app_web.run(host="0.0.0.0", port=port)
