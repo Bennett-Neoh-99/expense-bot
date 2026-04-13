@@ -184,14 +184,18 @@ async def auto_send(context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_document(chat_id=CHAT_ID, document=f)
 
 # -------- MAIN -------- #
-import asyncio
+# Run Flask in background thread
+def run_web():
+    port = int(os.environ.get("PORT", 10000))
+    app_web.run(host="0.0.0.0", port=port)
 
-def run_bot():
+if __name__ == "__main__":
+    # ✅ Start Flask in background
+    web_thread = threading.Thread(target=run_web)
+    web_thread.start()
+
+    # ✅ Run Telegram bot in MAIN thread (CRITICAL)
     print("Starting bot...")
-
-    # ✅ Create event loop for this thread
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
 
     app = ApplicationBuilder().token(TOKEN).build()
 
