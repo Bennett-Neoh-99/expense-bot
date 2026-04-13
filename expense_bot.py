@@ -180,22 +180,22 @@ print("Starting bot...")
 print("TOKEN:", TOKEN)
 print("CHAT_ID:", CHAT_ID)
 
-    app = ApplicationBuilder().token(TOKEN).build()
-    print("App built")
+app = ApplicationBuilder().token(TOKEN).build()
+print("App built")
 
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    app.add_handler(CommandHandler("summary", summary))
-    app.add_handler(CommandHandler("month", send_report))
-    print("Handlers added")
+app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+app.add_handler(CommandHandler("summary", summary))
+app.add_handler(CommandHandler("month", send_report))
+print("Handlers added")
 
-    # ❗ TEMP: disable scheduler
-    # scheduler = AsyncIOScheduler()
-    # scheduler.add_job(auto_send, 'cron', day=1, hour=9)
-    # scheduler.start()
+# ❗ TEMP: disable scheduler
+# scheduler = AsyncIOScheduler()
+# scheduler.add_job(auto_send, 'cron', day=1, hour=9)
+# scheduler.start()
 
-    print("🤖 Bot running...")
+print("🤖 Bot running...")
 
-    app.run_polling()
+app.run_polling()
 
 except Exception as e:
     print("🔥 ERROR OCCURRED:")
