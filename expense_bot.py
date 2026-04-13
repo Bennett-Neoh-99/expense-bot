@@ -152,18 +152,8 @@ def generate_report():
 
     return file_name
 
-async def send_report(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    file = generate_report()
 
-    if not file:
-        await update.message.reply_text("No data this month.")
-        return
-
-    # Send Excel file
-    with open(file, "rb") as f:
-        await update.message.reply_document(f)
-
- # -------- SEND REPORT COMMAND -------- #
+# -------- SEND REPORT COMMAND -------- #
 async def send_report(update: Update, context: ContextTypes.DEFAULT_TYPE):
     file = generate_report()
 
