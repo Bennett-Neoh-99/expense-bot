@@ -38,7 +38,7 @@ DATA_FILE = "expenses.csv"
 
 # Create CSV file if it doesn't exist
 if not os.path.exists(DATA_FILE):
-    df = pd.DataFrame(columns=["date", "description", "amount", "category"])
+    df = pd.DataFrame(columns=["date", "user_id", "description", "amount", "category"])
     df.to_csv(DATA_FILE, index=False)
 
 def detect_category(text):
@@ -96,10 +96,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Create entry
     entry = {
         "date": datetime.now(),
+        "user_id": update.message.chat_id,   # 👈 ADD THIS LINE
         "description": description,
         "amount": amount,
         "category": category
-    }
+}
 
     # Save to CSV
     save_expense(entry)
@@ -116,7 +117,12 @@ async def summary(update: Update, context: ContextTypes.DEFAULT_TYPE):
     today = datetime.now().date()
 
     # Filter today's expenses
-    today_df = df[df['date'].dt.date == today]
+    user_id = update.message.chat_id
+
+    today_df = df[
+        (df['date'].dt.date == today) &
+        (df['user_id'] == user_id)
+]
 
     if today_df.empty:
         await update.message.reply_text("No expenses today.")
@@ -161,21 +167,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(message, parse_mode="Markdown")
 
-def generate_report():
+def generate_report(user_id):
     df = pd.read_csv(DATA_FILE)
-    df['date'] = pd.to_datetime(df['date'])
 
-    now = datetime.now()
+    df = df[df['user_id'] == user_id]  # 👈 FILTER HERE
 
-    # Filter current month
-    monthly = df[
-        (df['date'].dt.month == now.month) &
-        (df['date'].dt.year == now.year)
-    ]
-
-    if monthly.empty:
+    if df.empty:
         return None
-
     # Group by category
     summary = monthly.groupby("category")["amount"].sum()
 
@@ -192,19 +190,23 @@ def generate_report():
 async def undo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     df = pd.read_csv(DATA_FILE)
 
-    if df.empty:
+    user_id = update.message.chat_id
+
+    user_df = df[df['user_id'] == user_id]
+
+    if user_df.empty:
         await update.message.reply_text("No entries to remove.")
         return
 
-    last = df.iloc[-1]
+    last_index = user_df.index[-1]
+    removed = df.loc[last_index]
 
-    df = df.iloc[:-1]
+    df = df.drop(last_index)
     df.to_csv(DATA_FILE, index=False)
 
     await update.message.reply_text(
-        f"🗑 Removed: {last['description']} - ${last['amount']:.2f}"
+        f"🗑 Removed: {removed['description']} - ${removed['amount']:.2f}"
     )
-
 
 # -------- DELETE SPECIFIC ENTRY -------- #
 async def delete_entry(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -213,10 +215,13 @@ async def delete_entry(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     keyword = " ".join(context.args).lower()
+    user_id = update.message.chat_id
 
     df = pd.read_csv(DATA_FILE)
 
-    matches = df[df['description'].str.lower().str.contains(keyword)]
+    user_df = df[df['user_id'] == user_id]
+
+    matches = user_df[user_df['description'].str.lower().str.contains(keyword)]
 
     if matches.empty:
         await update.message.reply_text("❌ No matching entry found.")
@@ -234,7 +239,9 @@ async def delete_entry(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
 # -------- SEND REPORT COMMAND -------- #
 async def send_report(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    file = generate_report()
+    user_id = update.message.chat_id  # 👈 GET USER
+
+    file = generate_report(user_id)   # 👈 PASS USER
 
     if not file:
         await update.message.reply_text("No data this month.")
@@ -245,13 +252,7 @@ async def send_report(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # -------- AUTO MONTHLY -------- #
 async def auto_send(context: ContextTypes.DEFAULT_TYPE):
-    file = generate_report()
-
-    if not file:
-        return
-
-    with open(file, "rb") as f:
-        await context.bot.send_document(chat_id=CHAT_ID, document=f)
+    return
 
 # -------- MAIN -------- #
 import threading
