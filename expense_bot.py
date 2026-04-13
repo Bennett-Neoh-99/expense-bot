@@ -184,8 +184,14 @@ async def auto_send(context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_document(chat_id=CHAT_ID, document=f)
 
 # -------- MAIN -------- #
+import asyncio
+
 def run_bot():
     print("Starting bot...")
+
+    # ✅ Create event loop for this thread
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
 
     app = ApplicationBuilder().token(TOKEN).build()
 
@@ -195,7 +201,6 @@ def run_bot():
 
     print("🤖 Bot running...")
     app.run_polling()
-
 
 if __name__ == "__main__":
     # Run bot in separate thread
