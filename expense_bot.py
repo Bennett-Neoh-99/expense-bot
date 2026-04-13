@@ -54,9 +54,7 @@ CREATE TABLE IF NOT EXISTS expenses (
 conn.commit()
 
 # Create CSV file if it doesn't exist
-if not os.path.exists(DATA_FILE):
-    df = pd.DataFrame(columns=["date", "user_id", "description", "amount", "category"])
-    df.to_csv(DATA_FILE, index=False)
+
 
 def detect_category(text):
     text = text.lower()
@@ -236,14 +234,6 @@ def generate_report(user_id):
     if df.empty:
         return None
 
-    # ✅ Convert date column
-    df['date'] = pd.to_datetime(df['date'])
-
-    # ✅ Filter user
-    df = df[df['user_id'] == user_id]
-
-    if df.empty:
-        return None
 
     # ✅ Get current month
     now = datetime.now()
@@ -270,22 +260,19 @@ def generate_report(user_id):
 
 # -------- UNDO LAST ENTRY -------- #
 async def undo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = "SELECT * FROM expenses WHERE user_id = ?"
-    df = pd.read_sql_query(query, conn, params=(update.message.chat_id,))
-
     user_id = update.message.chat_id
 
-    user_df = df[df['user_id'] == user_id]
+    query = "SELECT * FROM expenses WHERE user_id = ? ORDER BY id DESC"
+    df = pd.read_sql_query(query, conn, params=(user_id,))
 
-    if user_df.empty:
+    if df.empty:
         await update.message.reply_text("No entries to remove.")
         return
 
-    last_index = user_df.index[-1]
-    removed = df.loc[last_index]
+    removed = df.iloc[0]
 
-    df = df.drop(last_index)
-    df.to_csv(DATA_FILE, index=False)
+    cursor.execute("DELETE FROM expenses WHERE id = ?", (removed["id"],))
+    conn.commit()
 
     await update.message.reply_text(
         f"🗑 Removed: {removed['description']} - ${removed['amount']:.2f}"
@@ -300,8 +287,23 @@ async def delete_entry(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyword = " ".join(context.args).lower()
     user_id = update.message.chat_id
 
+    query = "SELECT * FROM expenses WHERE user_id = ?"
+    df = pd.read_sql_query(query, conn, params=(user_id,))
+
+    matches = df[df['description'].str.lower().str.contains(keyword)]
+
+    if matches.empty:
+        await update.message.reply_text("❌ No matching entry found.")
+        return
+
+    removed = matches.iloc[0]
+
     cursor.execute("DELETE FROM expenses WHERE id = ?", (removed["id"],))
     conn.commit()
+
+    await update.message.reply_text(
+        f"🗑 Deleted: {removed['description']} - ${removed['amount']:.2f}"
+    )
 
     user_df = df[df['user_id'] == user_id]
 
