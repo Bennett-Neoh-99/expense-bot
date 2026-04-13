@@ -160,7 +160,19 @@ async def send_report(update: Update, context: ContextTypes.DEFAULT_TYPE):
     with open(file, "rb") as f:
         await update.message.reply_document(f)
 
- async def auto_send(context: ContextTypes.DEFAULT_TYPE):
+ # -------- SEND REPORT COMMAND -------- #
+async def send_report(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    file = generate_report()
+
+    if not file:
+        await update.message.reply_text("No data this month.")
+        return
+
+    with open(file, "rb") as f:
+        await update.message.reply_document(f)
+
+# -------- AUTO MONTHLY -------- #
+async def auto_send(context: ContextTypes.DEFAULT_TYPE):
     file = generate_report()
 
     if not file:
@@ -169,22 +181,17 @@ async def send_report(update: Update, context: ContextTypes.DEFAULT_TYPE):
     with open(file, "rb") as f:
         await context.bot.send_document(chat_id=CHAT_ID, document=f)
 
-    # Create bot application
+# -------- MAIN -------- #
 app = ApplicationBuilder().token(TOKEN).build()
 
-# Message handler (for expense input)
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-
-# Commands
 app.add_handler(CommandHandler("summary", summary))
 app.add_handler(CommandHandler("month", send_report))
 
-# Scheduler setup
 scheduler = AsyncIOScheduler()
-scheduler.add_job(auto_send, 'cron', day=1, hour=9)  # 1st of month, 9AM
+scheduler.add_job(auto_send, 'cron', day=1, hour=9)
 scheduler.start()
 
 print("🤖 Bot running...")
 
-# Start bot
 app.run_polling()
