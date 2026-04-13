@@ -146,6 +146,40 @@ async def summary(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(msg)
 
+async def monthly(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    df = pd.read_csv(DATA_FILE)
+    df['date'] = pd.to_datetime(df['date'])
+
+    user_id = update.message.chat_id
+
+    df = df[df['user_id'] == user_id]
+
+    if df.empty:
+        await update.message.reply_text("No expenses this month.")
+        return
+
+    now = datetime.now()
+
+    monthly_df = df[
+        (df['date'].dt.month == now.month) &
+        (df['date'].dt.year == now.year)
+    ]
+
+    if monthly_df.empty:
+        await update.message.reply_text("No expenses this month.")
+        return
+
+    total = monthly_df['amount'].sum()
+
+    breakdown = monthly_df.groupby("category")["amount"].sum().sort_values(ascending=False)
+
+    msg = f"📅 Monthly Summary\n\nTotal: ${total:.2f}\n\n"
+
+    for cat, amt in breakdown.items():
+        msg += f"{cat.capitalize()}: ${amt:.2f}\n"
+
+    await update.message.reply_text(msg)
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = (
         "👋 *Welcome to Expense Tracker Bot!*\n\n"
@@ -156,7 +190,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "• grab 18\n\n"
         "📊 *View your spending:*\n"
         "/summary — Today’s breakdown\n"
-        "/month — Monthly Excel report\n\n"
+        "/monthly — Monthly spending summary\n"
+        "/month — Monthly Excel report\n"
         "🛠 *Manage entries:*\n"
         "/undo — Remove last entry\n"
         "/delete <name> — Remove specific entry\n"
@@ -296,6 +331,7 @@ if __name__ == "__main__":
 
     app.add_handler(CommandHandler("summary", summary))
     app.add_handler(CommandHandler("month", send_report))
+    app.add_handler(CommandHandler("monthly", monthly))
     app.add_handler(CommandHandler("undo", undo))
     app.add_handler(CommandHandler("delete", delete_entry))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
